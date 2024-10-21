@@ -1,4 +1,4 @@
-Flask==2.3.2
+FlaskFlask==2.3.2
 Flask-CORS==3.0.10
 psutil==5.9.0
 jupyterlab==4.0.6
