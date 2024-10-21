@@ -1,0 +1,13 @@
+{
+  "name": "Jupyter-ICP Dev Container",
+  "image": "mcr.microsoft.com/devcontainers/python:3.9",  // Environment Python 3.9
+  "postCreateCommand": "pip install jupyterlab",
+  "forwardPorts": [8888],
+  "settings": {
+    "terminal.integrated.defaultProfile.linux": "/bin/bash"
+  },
+  "extensions": [
+    "ms-python.python",
+    "dfinity-foundation.vscode-motoko"
+  ]
+}
