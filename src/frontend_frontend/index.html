@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Python Code Executor</title>
+    <title>Python Code Executor with Internet Identity</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -32,9 +32,79 @@
             white-space: pre-wrap;
         }
     </style>
+    <script type="module">
+        import { AuthClient } from "@dfinity/auth-client";
+        import { Actor, HttpAgent } from "@dfinity/agent";
+        import { idlFactory } from "./declarations/CodeExecutor";
+
+        let authClient;
+        let codeExecutor;
+
+        // Inisialisasi Agent dan Actor
+        const initActor = (identity) => {
+            const agent = new HttpAgent({ identity });
+            codeExecutor = Actor.createActor(idlFactory, {
+                agent,
+                canisterId: "your-canister-id",  // Ganti dengan ID canister yang sesuai
+            });
+        };
+
+        // Fungsi untuk login dengan Internet Identity
+        async function login() {
+            authClient = await AuthClient.create();
+
+            authClient.login({
+                identityProvider: "https://identity.ic0.app",
+                onSuccess: () => {
+                    const identity = authClient.getIdentity();
+                    document.getElementById('identity').innerText = `Logged in as: ${identity.getPrincipal()}`;
+                    initActor(identity);
+                }
+            });
+        }
+
+        window.onload = async () => {
+            document.getElementById('loginButton').onclick = login;
+        };
+
+        // Simpan hasil eksekusi ke canister
+        async function saveExecutionResult(result) {
+            await codeExecutor.saveResult(result);
+        }
+
+        // Menjalankan kode Python dan menyimpan hasilnya
+        const form = document.getElementById('codeForm');
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();  // Mencegah refresh halaman
+
+            const code = document.getElementById('code').value;
+
+            const response = await fetch('http://your-server-ip:5000/execute', {  // Ganti 'your-server-ip' dengan IP server backend
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ code: code }),
+            });
+
+            const result = await response.json();
+            document.getElementById('output').textContent = 
+                `Output: ${result.output || result.error}
+                \nWaktu Eksekusi: ${result.exec_time} detik
+                \nPenggunaan CPU: ${result.cpu_usage}%
+                \nPenggunaan Memori: ${result.memory_usage}%`;
+
+            // Simpan hasil ke canister
+            await saveExecutionResult(result.output || result.error);
+        });
+    </script>
 </head>
 <body>
     <h1>Python Code Executor</h1>
+
+    <!-- Tombol Login menggunakan Internet Identity -->
+    <button id="loginButton">Login dengan Internet Identity</button>
+    <p id="identity"></p>
 
     <!-- Form untuk menulis dan mengirim kode Python -->
     <form id="codeForm">
@@ -46,35 +116,5 @@
     <!-- Tempat menampilkan hasil eksekusi kode -->
     <h3>Hasil Eksekusi:</h3>
     <pre id="output"></pre>
-
-    <script>
-        // Ambil form kode dan tambahkan event listener
-        const form = document.getElementById('codeForm');
-        form.addEventListener('submit', async (event) => {
-            event.preventDefault();  // Mencegah refresh halaman
-
-            // Ambil nilai dari textarea
-            const code = document.getElementById('code').value;
-
-            // Kirim kode ke backend melalui fetch POST request
-            const response = await fetch('http://your-server-ip:5000/execute', {  // Ganti 'your-server-ip' dengan IP server backend
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ code: code }),
-            });
-
-            // Terima respons dari backend
-            const result = await response.json();
-
-            // Tampilkan hasil eksekusi di bagian output
-            document.getElementById('output').textContent = 
-                `Output: ${result.output || result.error}
-                \nWaktu Eksekusi: ${result.exec_time} detik
-                \nPenggunaan CPU: ${result.cpu_usage}%
-                \nPenggunaan Memori: ${result.memory_usage}%`;
-        });
-    </script>
 </body>
 </html>
